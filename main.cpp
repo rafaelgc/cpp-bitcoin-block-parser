@@ -8,18 +8,28 @@
 #define TOP_4 0xF0
 #define BOT_4 0x0F
 
-uint32_t varint(std::istream &input) {
+uint64_t varint(std::istream &input) {
     uint8_t lengthId = 0;
+    uint64_t res = 0;
     
     input.read((char *)(&lengthId), 1);
     if (lengthId < 0xFD) {
         return lengthId;
     }
+    else if (lengthId == 0xFD) {
+        input.read((char *)(&res), 2);
+    }
+    else if (lengthId == 0xFE) {
+        input.read((char *)(&res), 4);
+    }
+    else if (lengthId == 0xFF) {
+        input.read((char *)(&res), 8);
+    }
     else {
         std::cout << "Unsupported varint" << std::endl;
     }
     
-    return 0;
+    return res;
 }
 
 char hexTable[] = {'0', '1', '2', '3', '4', '5',
@@ -39,7 +49,7 @@ class Input {
     private:
     uint8_t prevTransaction[32];
     uint32_t txoutIndex;
-    uint32_t scriptLength;
+    uint64_t scriptLength;
     std::vector<uint8_t> scriptSig;
     uint32_t sequenceNumber;
     
@@ -83,7 +93,7 @@ class Output {
     
     private:
     uint64_t value;
-    uint32_t scriptLength;
+    uint64_t scriptLength;
     std::vector<uint8_t> script;
 };
 
@@ -114,9 +124,9 @@ uint64_t Output::getValue() const {
 class Transaction {
     private:
     uint32_t version;
-    uint32_t inputsCounter;
+    uint64_t inputsCounter;
     std::vector<Input> inputs;
-    uint32_t outputsCounter;
+    uint64_t outputsCounter;
     std::vector<Output> outputs;
     uint32_t lockTime;
     
@@ -228,7 +238,7 @@ class Block {
     private:
     uint32_t magic, blockSize;
     BlockHeader blockHeader;
-    uint32_t txnCounter;
+    uint64_t txnCounter;
     std::vector<Transaction> txs;
     public:
     Block(std::istream & input);
@@ -294,6 +304,8 @@ int main(int argc, char ** argv) {
         std::cout << std::hex << block.getMagicNumber() << std::endl;
         std::cout << "Output Shatoshi: " << std::dec << block.getOutputsValue() << std::endl;
         counter++;
+        
+        break;
     }
     
     std::cout << "Blocks: " << std::dec << counter << std::endl;
