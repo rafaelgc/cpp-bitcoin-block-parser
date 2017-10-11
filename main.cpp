@@ -1,9 +1,26 @@
 #include <iostream>
 #include <fstream>
 #include <stdint.h>
+#include <vector>
+
+/* HELPERS */
 
 #define TOP_4 0xF0
 #define BOT_4 0x0F
+
+uint32_t varint(std::istream &input) {
+    uint8_t lengthId = 0;
+    
+    input.read((char *)(&lengthId), 1);
+    if (lengthId < 0xFD) {
+        return lengthId;
+    }
+    else {
+        std::cout << "Unsupported varint" << std::endl;
+    }
+    
+    return 0;
+}
 
 char hexTable[] = {'0', '1', '2', '3', '4', '5',
                 '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
@@ -16,18 +33,248 @@ char uint8ToHexTop(uint8_t hex) {
     return hexTable[(hex & TOP_4) >> 4];
 }
 
-uint32_t varint(std::ifstream &input) {
-    uint8_t lengthId = 0;
+/* INPUT */
+
+class Input {
+    private:
+    uint8_t prevTransaction[32];
+    uint32_t txoutIndex;
+    uint32_t scriptLength;
+    std::vector<uint8_t> scriptSig;
+    uint32_t sequenceNumber;
     
-    input.read((char *)(&lengthId), 1);
-    if (lengthId & 0xFD == 0xFD) {
-        uint32_t output = 0;
-        input.read((char*)(&output), 1);
-        return output;
+    public:
+    Input(std::istream & input);
+    void init(std::istream & input);
+    
+    uint32_t getSequenceNumber() const;
+};
+
+Input::Input(std::istream & input) {
+    this->init(input);
+}
+
+void Input::init(std::istream & input) {
+    input.read((char *)(&this->prevTransaction), 32);    
+    input.read((char *)(&this->txoutIndex), 4);    
+    this->scriptLength = varint(input);
+    
+    for (uint32_t i = 0; i < scriptLength; i++) {
+        uint8_t tmp;
+        input.read((char *)(&tmp), 1);
+        this->scriptSig.push_back(tmp);
     }
-    else {
-        std::cout << "Unsupported varint";
-        return 0;
+    
+    input.read((char *)(&this->sequenceNumber), 4);    
+}
+
+uint32_t Input::getSequenceNumber() const {
+    return this->sequenceNumber;
+}
+
+/* OUTPUT */
+
+class Output {
+    public:
+    Output(std::istream & input);
+    void init(std::istream & input);
+    
+    uint64_t getValue() const;
+    
+    private:
+    uint64_t value;
+    uint32_t scriptLength;
+    std::vector<uint8_t> script;
+};
+
+Output::Output(std::istream & input) {
+    this->init(input);
+}
+
+void Output::init(std::istream & input) {
+    input.read((char *)(&this->value), 8);
+    
+    std::cout << std::dec << value << std::endl;
+        
+    scriptLength = varint(input);
+    
+    for (uint32_t i = 0; i < scriptLength; i++) {
+        uint8_t tmp;
+        input.read((char *)(&tmp), 1);    
+        this->script.push_back(tmp);
+    }
+}
+
+uint64_t Output::getValue() const {
+    return this->value;
+}
+
+/* TRANSACTION */
+
+class Transaction {
+    private:
+    uint32_t version;
+    uint32_t inputsCounter;
+    std::vector<Input> inputs;
+    uint32_t outputsCounter;
+    std::vector<Output> outputs;
+    uint32_t lockTime;
+    
+    public:
+    Transaction(std::istream & input);
+    void init(std::istream & input);
+    
+    uint64_t getOutputsValue() const;
+};
+
+Transaction::Transaction(std::istream & input) {
+    this->init(input);
+}
+
+void Transaction::init(std::istream & input) {
+    input.read((char *)(&(this->version)), 4);
+    this->inputsCounter = varint(input);
+    
+    for (uint32_t i = 0; i < this->inputsCounter; i++) {
+        inputs.push_back(Input(input));
+    }
+    
+    this->outputsCounter = varint(input);
+    
+    for (uint32_t i = 0; i < this->outputsCounter; i++) {
+        outputs.push_back(Output(input));
+    }
+    
+    input.read((char *)(&(this->lockTime)), 4);
+    
+}
+
+uint64_t Transaction::getOutputsValue() const {
+    uint64_t sum = 0;
+    
+    for (const auto & output : this->outputs) {
+        sum += output.getValue();
+    }
+    
+    return sum;
+}
+
+/* BLOCK HEADER */
+
+class BlockHeader {
+    private:
+    int32_t version;
+    int8_t prevBlock[32];
+    int8_t merkleRoot[32];
+    int32_t timestamp, bits, nonce/*, txnCount*/;
+    public:
+    BlockHeader(std::istream &input);
+    BlockHeader();
+    
+    void init(std::istream &input);
+    
+    int32_t getVersion() const;
+    int8_t* getPreviousBlock();
+    int8_t* getMerkleRoot();
+    int32_t getTimestamp() const;
+    int32_t getBits() const;
+    int32_t getNonce() const;
+};
+
+BlockHeader::BlockHeader(std::istream &input) {
+    this->init(input);
+}
+
+BlockHeader::BlockHeader() {
+    this->version = timestamp = bits = nonce = 0;
+}
+
+void BlockHeader::init(std::istream &input) {
+    input.read((char *)(&(this->version)), 4);
+    input.read((char *)(&this->prevBlock), 32);    
+    input.read((char *)(&this->merkleRoot), 32);
+    input.read((char*)(&this->timestamp), 4);
+    input.read((char*)(&this->bits), 4);
+    input.read((char*)(&this->nonce), 4);
+}
+
+int32_t BlockHeader::getVersion() const {
+    return this->version;
+}
+
+int8_t* BlockHeader::getPreviousBlock() {
+    return this->prevBlock;
+}
+
+int8_t* BlockHeader::getMerkleRoot() {
+    return this->merkleRoot;
+}
+
+int32_t BlockHeader::getTimestamp() const {
+    return this->timestamp;
+}
+
+int32_t BlockHeader::getBits() const {
+    return this->bits;
+}
+
+int32_t BlockHeader::getNonce() const {
+    return this->nonce;
+}
+
+/* BLOCK */
+
+class Block {
+    private:
+    uint32_t magic, blockSize;
+    BlockHeader blockHeader;
+    uint32_t txnCounter;
+    std::vector<Transaction> txs;
+    public:
+    Block(std::istream & input);
+    
+    uint32_t getMagicNumber() const;
+    uint32_t getBlockSize() const;
+    BlockHeader getBlockHeader() const;
+    uint32_t getTransactionCounter() const;
+    
+    uint64_t getOutputsValue() const;
+};
+
+Block::Block(std::istream & input) {
+    input.read((char *)(&magic), 4);
+    input.read((char *)(&blockSize), 4);
+    
+    this->blockHeader.init(input);
+    
+    this->txnCounter = varint(input);
+    
+    for (uint32_t i = 0; i < txnCounter; i++) {
+        txs.push_back(Transaction(input));
+    }
+}
+
+uint32_t Block::getMagicNumber() const {
+    return this->magic;
+}
+
+uint32_t Block::getBlockSize() const {
+    return this->blockSize;
+}
+
+BlockHeader Block::getBlockHeader() const {
+    return this->blockHeader;
+}
+
+uint32_t Block::getTransactionCounter() const {
+    return this->txnCounter;
+}
+
+uint64_t Block::getOutputsValue() const {
+    uint64_t sum = 0;
+    
+    for (const auto & tx : this->txs) {
+        sum += tx.getOutputsValue();
     }
 }
 
@@ -39,117 +286,17 @@ int main(int argc, char ** argv) {
 
     std::ifstream input(argv[1], std::ios::binary);
     
-    uint32_t magic = 0, size = 0, version = 0, timestamp = 0, diffTarget = 0, nonce = 0;
-    uint32_t transactions = 0;
-    uint8_t prevHash[32], merkleRoot[32];
-    uint8_t lengthId = 0;
+    uint32_t counter = 0;
     
-    input.read((char *)(&magic), 4);
-    input.read((char *)(&size), 4);
-    
-    /* HEADER */
-    
-    input.read((char *)(&version), 4);
-    input.read((char *)(&prevHash), 32);    
-    input.read((char *)(&merkleRoot), 32);
-    input.read((char*)(&timestamp), 4);
-    input.read((char*)(&diffTarget), 4);
-    input.read((char*)(&nonce), 4);
-    
-    /* END HEADER*/
-    
-    transactions = varint(input);
-    
-    /*TRANSACTIONS*/
-    
-    uint32_t transVersion = 0;
-    input.read((char *)(&transVersion), 4);
-    
-    uint32_t inputs = varint(input);
-    
-    /*INPUTS*/
-    
-    uint32_t outputs = varint(input);
-    
-    uint32_t locktime = 0;
-    input.read((char*)(&locktime), 4);
-    
-    std::cout << "Magic:\t" << std::hex << magic << std::endl;
-    std::cout << "Size:\t" << std::dec << size << std::endl;
-    std::cout << "Version:\t" << version << std::endl;
-    std::cout << "Timestamp:\t" << timestamp << std::endl;
-    std::cout << "Diff:\t" << diffTarget << std::endl;
-    std::cout << "Nonce: " << nonce << std::endl;
-    
-     std::cout << "Previous block hash: " << std::endl;
-     for (int i = 0; i <32; i++) {
-        std::cout << uint8ToHexTop(prevHash[31 - i]) << uint8ToHexBot(prevHash[31 - i]);
+    while (!input.eof()) {
+        Block block(input);
+        
+        std::cout << std::hex << block.getMagicNumber() << std::endl;
+        std::cout << "Output Shatoshi: " << std::dec << block.getOutputsValue() << std::endl;
+        counter++;
     }
     
-    std::cout << std::endl;
-    std::cout << "Merkle root: " << std::endl;
-    
-    for (int i = 0; i <32; i++) {
-        std::cout << uint8ToHexTop(merkleRoot[31 - i]) << uint8ToHexBot(merkleRoot[31 - i]);
-    }
-    std::cout << std::endl;
-    
-    
-    
-    std::cout << std::dec << "Transactions: " << (int)transactions << std::endl;
-    
-    std::cout << "TRANSACTIONS" << std::endl;
-    
-    std::cout << "Version: " << (int)transVersion << std::endl;
-    std::cout << "Inputs: " << inputs << std::endl;
-    
-    std::cout << "Outputs: " << outputs << std::endl;
-    std::cout << "Locktime: " << locktime << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    input.read((char*)(&magic), 4);
-    std::cout << "Magic: " << magic << std::endl;
-    
-    // 1111 1101
-    // 1111 1101 &
-    // 
-    
-    input.close();
-    
-    return 0;
-    /*
-    
-    char blockSize[4], version[4];
-    uint32_t bS = 0, v = 0;
-    
-    input.read(blockSize, 4);
-    
-    
-    put(&bS, blockSize, 4);
-    put(&v, version, 4);
-    std::cout << bS << std::endl;
-    std::cout << v << std::endl;
-    */
-    
-    /*std::cout << "Block size:\t" << blockSize << std::endl;
-    std::cout << "Version:\t\t" << version << std::endl;*/
+    std::cout << "Blocks: " << std::dec << counter << std::endl;
     
     input.close();
     
