@@ -38,3 +38,12 @@ uint64_t Block::getOutputsValue() const {
     
     return sum;
 }
+
+std::vector<uint8_t> Block::calcMerkleRoot() {
+    
+    std::vector<uint8_t> result;    
+    
+    
+    
+    return result;
+}

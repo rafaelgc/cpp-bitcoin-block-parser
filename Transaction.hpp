@@ -18,11 +18,15 @@ class Transaction {
     std::vector<Output> outputs;
     uint32_t lockTime;
     
+    
+    
     public:
     Transaction(std::istream & input);
     void init(std::istream & input);
     
     uint64_t getOutputsValue() const;
+    
+    std::vector<uint8_t> getHash();
 };
 
 #endif

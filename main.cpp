@@ -27,7 +27,7 @@ int main(int argc, char ** argv) {
             std::cout << block.getHeader().getHash() << std::endl;
             std::cout << std::dec << "Size: " << block.getSize() << std::endl;
             std::cout << "Output Satoshi: " << std::dec << block.getOutputsValue() << " in " << block.getTransactionCounter() << " transactions. " << std::endl;
-            std::cout << "MR: " << std::dec << *block.getHeader().getMerkleRoot() << std::endl;
+            std::cout << "MR: " << std::dec << (int)(*block.getHeader().getMerkleRoot()) << std::endl;
             std::cout << input.tellg() << std::endl << std::endl;
             counter++;
         }

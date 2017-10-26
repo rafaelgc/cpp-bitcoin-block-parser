@@ -24,6 +24,8 @@ class Block {
     uint32_t getTransactionCounter() const;
     
     uint64_t getOutputsValue() const;
+    
+    std::vector<uint8_t> calcMerkleRoot();
 };
 
 #endif

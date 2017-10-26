@@ -31,3 +31,9 @@ uint64_t Transaction::getOutputsValue() const {
     
     return sum;
 }
+
+std::vector<uint8_t> Transaction::getHash() {
+    std::vector<uint8_t> result;
+    
+    return result;
+}
