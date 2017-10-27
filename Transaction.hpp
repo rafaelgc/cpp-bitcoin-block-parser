@@ -26,6 +26,12 @@ class Transaction {
     
     uint64_t getOutputsValue() const;
     
+    uint32_t getInputsCount() const;
+    uint32_t getOutputsCount() const;
+    
+    std::vector<Input>& getInputs();
+    std::vector<Output>& getOutputs();
+    
     std::vector<uint8_t> getHash();
 };
 

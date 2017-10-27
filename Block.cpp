@@ -25,7 +25,7 @@ BlockHeader Block::getHeader() const {
     return this->blockHeader;
 }
 
-uint32_t Block::getTransactionCounter() const {
+uint32_t Block::getTransactionCount() const {
     return this->txnCounter;
 }
 
@@ -37,6 +37,10 @@ uint64_t Block::getOutputsValue() const {
     }
     
     return sum;
+}
+
+std::vector<Transaction>& Block::getTransactions() {
+    return txs;
 }
 
 std::vector<uint8_t> Block::calcMerkleRoot() {

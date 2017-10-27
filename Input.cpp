@@ -5,7 +5,8 @@ Input::Input(std::istream & input) {
 }
 
 void Input::init(std::istream & input) {
-    input.read((char *)(&this->prevTransaction), 32);    
+    //input.read((char *)(&this->prevTransaction), 32);  
+    input.read((char *) this->prevTransaction.first(), 32);
     input.read((char *)(&this->txoutIndex), 4);    
     this->scriptLength = varint(input);
     
@@ -22,3 +23,10 @@ uint32_t Input::getSequenceNumber() const {
     return this->sequenceNumber;
 }
 
+uint32_t Input::getTxOutIndex() const {
+    return this->txoutIndex;
+}
+
+uint256_t Input::getPreviousTransaction() const {
+    return prevTransaction;
+}

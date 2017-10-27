@@ -32,6 +32,22 @@ uint64_t Transaction::getOutputsValue() const {
     return sum;
 }
 
+uint32_t Transaction::getInputsCount() const {
+    return inputs.size();
+}
+
+uint32_t Transaction::getOutputsCount() const {
+    return outputs.size();
+}
+
+std::vector<Input>& Transaction::getInputs() {
+    return inputs;
+}
+
+std::vector<Output>& Transaction::getOutputs() {
+    return outputs;
+}
+
 std::vector<uint8_t> Transaction::getHash() {
     std::vector<uint8_t> result;
     
