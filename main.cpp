@@ -13,6 +13,7 @@
 int main(int argc, char ** argv) {
     if (argc < 2) {
         std::cout << "Command: " << argv[0] << " FILENAME" << std::endl;
+        return 0;
     }
     
 
@@ -53,7 +54,7 @@ int main(int argc, char ** argv) {
         Block block = blocks[blockNum];
         
         std::cout << "BLOCK " << blockNum << std::endl;
-        std::cout << "Hash: " << block.getHeader().getHash() << std::endl;
+        std::cout << "Hash: " << block.getHeader().getHashStr() << std::endl;
         std::cout << "Transactions: " << block.getTransactionCount() << std::endl;
         
         std::cout << "Pick one transaction: ";
