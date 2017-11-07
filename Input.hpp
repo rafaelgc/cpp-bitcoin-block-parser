@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "Helpers.hpp"
+#include "Blob.hpp"
 
 class Input {
     private:
-    uint8_t prevTransaction[32];
+    uint256_t prevTransaction;
     uint32_t txoutIndex;
     uint64_t scriptLength;
     std::vector<uint8_t> scriptSig;
@@ -19,7 +20,10 @@ class Input {
     Input(std::istream & input);
     void init(std::istream & input);
     
+    uint32_t getTxOutIndex() const;
     uint32_t getSequenceNumber() const;
+    
+    uint256_t getPreviousTransaction() const;
 };
 
 #endif

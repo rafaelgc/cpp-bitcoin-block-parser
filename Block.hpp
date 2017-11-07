@@ -21,9 +21,13 @@ class Block {
     uint32_t getMagicNumber() const;
     uint32_t getSize() const;
     BlockHeader getHeader() const;
-    uint32_t getTransactionCounter() const;
+    uint32_t getTransactionCount() const;
     
     uint64_t getOutputsValue() const;
+    
+    std::vector<Transaction>& getTransactions();
+    
+    std::vector<uint8_t> calcMerkleRoot();
 };
 
 #endif
